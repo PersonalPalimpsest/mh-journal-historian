@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.0.0
+// @version      1.0.1
+// @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
 // @match        http://www.mousehuntgame.com/*
