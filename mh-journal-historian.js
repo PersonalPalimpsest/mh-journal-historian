@@ -30,6 +30,9 @@
 	}
 
 	function saveEntries() {
+		const saveDebug = false;
+
+		if (debug) console.log('Saving entries');
 		const entries = document.querySelectorAll('.entry');
 		const savedEntries = getSavedEntriesFromStorage();
 
@@ -37,10 +40,10 @@
 			const entryId = entry.dataset.entryId
 
 			if (savedEntries[entryId]) {
-				if (debug) console.log(`Entry ${entryId} already stored`);
+				if (saveDebug) console.log(`Entry ${entryId} already stored`);
 			}
 			else {
-				if (debug) console.log(`Stored new entry ${entryId}`);
+				if (saveDebug) console.log(`Stored new entry ${entryId}`);
 				$.toast({
 					text: `Stored new entry ${entryId}`,
 					stack: 24
@@ -56,13 +59,10 @@
 	const observerTarget = document.querySelector(`#journalContainer .content`);
 	const observer = new MutationObserver(function (mutations) {
 		const mutationDebug = false;
-
-		if (debug) console.log('mutated');
-		if (mutationDebug) {
-			console.log('mutated');
-			for (const mutation of mutations) {
-				console.log({mutation});
-				console.log(mutation.target);
+				observer.observe(observerTarget, {
+					childList: true,
+					subtree: true
+				});
 			}
 		}
 
@@ -127,8 +127,11 @@
 	}
 
 	function classifier(entry) {
-		if (debug) console.log('Running classifier');
 		const classifierDebug = false;
+
+		if (debug) console.log('Running classifier');
+		const id = entry.dataset.entryId;
+		if (classifierDebug) console.log({id});
 		const cssClass = entry.className;
 
 		if (cssClass.search(/(catchfailure|catchsuccess|attractionfailure|stuck_snowball_catch)/) !== -1) {
@@ -173,8 +176,7 @@
 		const entries = document.querySelectorAll('.entry');
 
 		entries.forEach((entry)=>{
-			const id = entry.dataset.entryId;
-			console.log(id);
+
 			classifier(entry);
 		})
 	}
@@ -209,6 +211,7 @@
 			clone.onclick = (()=>{
 				massClasser();
 				entryFilter(`jh${clone.innerHTML}`);
+				// renderBtns();
 			})
 			hoverDiv.insertBefore(clone,hoverBtn);
 		}
