@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.0.1
+// @version      1.0.2
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -29,6 +29,9 @@
 	}
 
 	function saveEntries() {
+		const saveDebug = false;
+
+		if (debug) console.log('Saving entries');
 		const entries = document.querySelectorAll('.entry');
 		const savedEntries = JSON.parse(localStorage.getItem('mh-journal-historian')) || [];
 
@@ -36,10 +39,10 @@
 			const entryId = entry.dataset.entryId
 
 			if (savedEntries[entryId]) {
-				if (debug) console.log(`Entry ${entryId} already stored`);
+				if (saveDebug) console.log(`Entry ${entryId} already stored`);
 			}
 			else {
-				if (debug) console.log(`Stored new entry ${entryId}`);
+				if (saveDebug) console.log(`Stored new entry ${entryId}`);
 				$.toast({
 					text: `Stored new entry ${entryId}`,
 					stack: 12
@@ -52,31 +55,72 @@
 		localStorage.setItem('mh-journal-historian',JSON.stringify(savedEntries));
 	}
 
-	const observerTarget = document.querySelector(`#journalEntries${user.user_id}`);
-	const observer = new MutationObserver(function (mutations) {
-		const mutationDebug = false;
+	const observerTarget = document.querySelector(".mousehuntPage-content"); //document.querySelector(`#journalEntries${user.user_id}`);
+// 	const observer = new MutationObserver(function (mutations) {
+// 		const mutationDebug = true;
 
-		if (debug) console.log('mutated');
-		if (mutationDebug) {
-			console.log('mutated');
-			for (const mutation of mutations) {
-				console.log({mutation});
-				console.log(mutation.target);
+// 		if (debug) console.log('mutated');
+// 		if (mutationDebug) {
+// 			console.log('mutated');
+// 			for (const mutation of mutations) {
+// 				console.log({mutation});
+// 				console.log(mutation.target);
+// 			}
+// 		}
+// 		saveEntries();
+// 		renderBtns();
+
+// 		observer.observe(observerTarget, {
+// 			childList: true,
+// 			subtree: true
+// 		});
+// 	});
+
+// 	observer.observe(observerTarget, {
+// 		childList: true,
+// 		subtree: true
+// 	});
+
+	if (observerTarget) {
+		MutationObserver =
+			window.MutationObserver ||
+			window.WebKitMutationObserver ||
+			window.MozMutationObserver;
+
+		const observer = new MutationObserver(function (mutations) {
+			const mutationDebug = true;
+			const campExists = document.querySelector(
+				".mousehuntPage-content.PageCamp"
+			);
+
+			if (debug) console.log('mutated');
+			if (mutationDebug) {
+				console.log('mutated');
+				for (const mutation of mutations) {
+					console.log({mutation});
+					console.log(mutation.target);
+				}
 			}
-		}
-		saveEntries();
-		renderBtns();
+			if (campExists) {
+				// Disconnect and reconnect later to prevent infinite mutation loop
+				observer.disconnect();
+
+				// Re-render buttons (mainly for alternate TEM area placement)
+				// saveEntries();
+				// renderBtns();
+
+				observer.observe(observerTarget, {
+					childList: true,
+					subtree: true
+				});
+			}
+		});
 
 		observer.observe(observerTarget, {
 			childList: true,
 			subtree: true
 		});
-	});
-
-	observer.observe(observerTarget, {
-		childList: true,
-		subtree: true
-	});
+	}
 
 	const hornReq = XMLHttpRequest.prototype.open;
 	XMLHttpRequest.prototype.open = function () {
@@ -106,8 +150,11 @@
 	}
 
 	function classifier(entry) {
-		if (debug) console.log('Running classifier');
 		const classifierDebug = false;
+
+		if (debug) console.log('Running classifier');
+		const id = entry.dataset.entryId;
+		if (classifierDebug) console.log({id});
 		const cssClass = entry.className;
 
 		if (cssClass.search(/(catchfailure|catchsuccess|attractionfailure|stuck_snowball_catch)/) !== -1) {
@@ -152,8 +199,7 @@
 		const entries = document.querySelectorAll('.entry');
 
 		entries.forEach((entry)=>{
-			const id = entry.dataset.entryId;
-			console.log(id);
+
 			classifier(entry);
 		})
 	}
@@ -188,6 +234,7 @@
 			clone.onclick = (()=>{
 				massClasser();
 				entryFilter(`jh${clone.innerHTML}`);
+				// renderBtns();
 			})
 			hoverDiv.insertBefore(clone,hoverBtn);
 		}
