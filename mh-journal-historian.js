@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.1.2
+// @version      1.1.3
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -59,13 +59,14 @@
 	const observerTarget = document.querySelector(`#journalContainer .content`);
 	const observer = new MutationObserver(function (mutations) {
 		const mutationDebug = false;
-				observer.observe(observerTarget, {
-					childList: true,
-					subtree: true
-				});
+
+		if (debug) console.log('mutated');
+		if (mutationDebug) {
+			for (const mutation of mutations) {
+				console.log({mutation});
+				console.log(mutation.target);
 			}
 		}
-
 		// Only save if something was added.
 		if (mutations.some(v => v.type === 'childList' && v.addedNodes.length > 0)) {
 			saveEntries();
