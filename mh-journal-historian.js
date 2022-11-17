@@ -43,7 +43,7 @@
 				if (debug) console.log(`Stored new entry ${entryId}`);
 				$.toast({
 					text: `Stored new entry ${entryId}`,
-					stack: 12
+					stack: 24
 				});
 				entryStripper(entry);
 				savedEntries[entry.dataset.entryId] = entry.outerHTML;
