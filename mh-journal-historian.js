@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.2.0
+// @version      1.3.0
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -14,7 +14,7 @@
 // ==/UserScript==
 
 (function () {
-	const debug = false;
+	const debug = true;
 
 	function entryStripper(entry) {
 		if (entry.classList.contains('animated')) {
@@ -123,11 +123,6 @@
 		localStorage.setItem('mh-journal-historian', compressed);
 	}
 
-	function mpCleanUp() {
-		const mp = document.querySelectorAll('.marketplace');
-		mp.forEach((entry)=>{entry.remove()})
-	}
-
 	function classifier(entry) {
 		const classifierDebug = false;
 
@@ -183,13 +178,22 @@
 		})
 	}
 
-	function entryFilter(filterType) {
-		if (debug) console.log('Filtering entries');
-		const allEntries = document.querySelectorAll('.entry');
-		for (const e of allEntries) {e.style.display = 'none'}
-		console.log({filterType});
-		const selectedEntries = document.querySelectorAll(`.${filterType}`);
-		for (const se of selectedEntries) {se.style.display = 'block'}
+	const tglTypes = {};
+
+	function entryFilterTgl(filterType) {
+		if (debug) console.log(`Filtering ${filterType} entries`);
+		const typeEntries = document.querySelectorAll(`.entry.jh${filterType}`);
+		const type = filterType;
+
+		console.log(tglTypes.type);
+		if (tglTypes.type) { // if true, then clicking = turning off = setting display to none
+			for (const e of typeEntries) {e.style.display = 'none';}
+			tglTypes.type = false;
+		}
+		else {
+			for (const e of typeEntries) {e.style.display = 'block';}
+			tglTypes.type = true;
+		}
 	}
 
 	function renderBtns() {
@@ -208,14 +212,14 @@
 
 		let filterType = ['Hunts','Marketplace','Mapping','Trading','Convertible','Misc'];
 		for (let i = 0; i < 6; i++) {
-			let clone = hoverBtn.cloneNode(true);
+			const clone = hoverBtn.cloneNode(true);
 			clone.id = 'jhButton';
 			clone.innerHTML = filterType[i];
 			clone.style.backgroundImage = 'none';
 			clone.style.padding = '0 0 0 5px';
 			clone.onclick = (()=>{
 				massClasser();
-				entryFilter(`jh${clone.innerHTML}`);
+				entryFilterTgl(`${clone.innerHTML}`);
 			})
 			hoverDiv.insertBefore(clone,hoverBtn);
 		}
