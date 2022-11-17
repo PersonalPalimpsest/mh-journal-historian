@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.4
+// @version      1.3.5
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -14,47 +14,13 @@
 // ==/UserScript==
 
 (function () {
-	const debug = true;
+	const debug = false;
 	const filterDebug = false;
 	const saveDebug = false;
 	const mutationDebug = false;
 	const classifierDebug = false;
 
-	function entryStripper(entry) {
-		if (entry.classList.contains('animated')) {
-			entry.classList.remove('animated');
-		}
-		if (entry.classList.contains('newEntry')) {
-			entry.classList.remove('newEntry');
-		}
-		entry.style = null;
-	}
-
-	function saveEntries() {
-		if (debug) console.log('Saving entries');
-		const entries = document.querySelectorAll('.entry');
-		const savedEntries = getSavedEntriesFromStorage();
-
-		entries.forEach((entry) => {
-			const entryId = entry.dataset.entryId
-
-			if (savedEntries[entryId]) {
-				if (saveDebug) console.log(`Entry ${entryId} already stored`);
-			}
-			else {
-				if (saveDebug) console.log(`Stored new entry ${entryId}`);
-				$.toast({
-					text: `Stored new entry ${entryId}`,
-					stack: 24
-				});
-				classifier(entry);
-				entryStripper(entry);
-				savedEntries[entry.dataset.entryId] = entry.outerHTML;
-			}
-		});
-		setSavedEntriesToStorage(savedEntries);
-	}
-
+	// Observers to run the save and display functions as required
 	const observerTarget = document.querySelector(`#journalContainer .content`);
 	const observer = new MutationObserver(function (mutations) {
 		if (debug) console.log('mutated');
@@ -67,7 +33,7 @@
 		// Only save if something was added.
 		if (mutations.some(v => v.type === 'childList' && v.addedNodes.length > 0)) {
 			saveEntries();
-			loadTgl();
+			filterOnLoad();
 		}
 	});
 	observer.observe(observerTarget, {
@@ -81,7 +47,7 @@
 			if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/turns/activeturn.php`) {
 				if (debug) console.log('horn detected');
 				saveEntries();
-				loadTgl();
+				filterOnLoad();
 			} else if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/pages/page.php`) {
 				renderBtns();
 			}
@@ -89,43 +55,37 @@
 		xhrObserver.apply(this, arguments);
 	}
 
-	function renderSavedEntries() {
+	// Save functions section
+	function saveEntries() {
+		if (debug) console.log('Saving entries');
+		const entries = document.querySelectorAll('.entry');
 		const savedEntries = getSavedEntriesFromStorage();
-		const journal = document.querySelector(`#journalEntries${user.user_id}`);
-		const existingEntries = journal.querySelectorAll('.entry');
 
-		if (debug) console.log({existingEntries});
-		for (const entry of existingEntries) {entry.remove();}
+		gapDetector();
 
-		for (const [id, entry] of Object.entries(savedEntries)) {
-			if (entry) {
-				const frag = document.createRange().createContextualFragment(entry);
-				journal.prepend(frag);
+		for (const entry of entries) {
+			const entryId = entry.dataset.entryId
+
+			if (savedEntries[entryId]) {
+				if (saveDebug) console.log(`Entry ${entryId} already stored`);
+			}
+			else {
+				if (saveDebug) console.log(`Stored new entry ${entryId}`);
+				$.toast({
+					text: `Stored new entry ${entryId}`,
+					stack: 25
+				});
+				classifier(entry);
+				entryStripper(entry);
+				savedEntries[entry.dataset.entryId] = entry.outerHTML;
 			}
 		}
+		setSavedEntriesToStorage(savedEntries);
 	}
 
-	function getSavedEntriesFromStorage() {
-		const compressed = localStorage.getItem('mh-journal-historian');
-		const decompressed = LZString.decompressFromUTF16(compressed);
-
-		var savedEntries;
-		try {
-			savedEntries = JSON.parse(decompressed);
-		} catch {
-			savedEntries = {};
-		}
-		return savedEntries;
-	}
-
-	function setSavedEntriesToStorage(entries) {
-		const savedEntries = JSON.stringify(entries);
-		const compressed = LZString.compressToUTF16(savedEntries);
-		localStorage.setItem('mh-journal-historian', compressed);
-	}
-
+	// Classifying journal entries
 	function classifier(entry) {
-		if (debug) console.log('Running classifier');
+		if (classifierDebug) console.log('Running classifier');
 		const id = entry.dataset.entryId;
 		if (classifierDebug) console.log({id});
 		const cssClass = entry.className;
@@ -167,42 +127,98 @@
 		}
 	}
 
-	function massClasser() {
-		if (debug) console.log('Running massClasser');
-		const entries = document.querySelectorAll('.entry');
+	// Saving helper functions
+	function getSavedEntriesFromStorage() {
+		const compressed = localStorage.getItem('mh-journal-historian');
+		const decompressed = LZString.decompressFromUTF16(compressed);
 
-		entries.forEach((entry)=>{
-			classifier(entry);
-		})
+		var savedEntries;
+		try {
+			savedEntries = JSON.parse(decompressed);
+		} catch {
+			savedEntries = {};
+		}
+		return savedEntries;
 	}
 
-	const tglTypes = JSON.parse(localStorage.getItem('mh-journal-historian-toggles')) || {};
+	function setSavedEntriesToStorage(entries) {
+		const savedEntries = JSON.stringify(entries);
+		const compressed = LZString.compressToUTF16(savedEntries);
+		localStorage.setItem('mh-journal-historian', compressed);
+	}
 
-	function entryFilterTgl(filterType) {
-		if (debug) console.log(`Filtering ${filterType} entries`);
+	function entryStripper(entry) {
+		if (entry.classList.contains('animated')) {
+			entry.classList.remove('animated');
+		}
+		if (entry.classList.contains('newEntry')) {
+			entry.classList.remove('newEntry');
+		}
+		entry.style = null;
+	}
+
+	function gapDetector() {
+		const latestEntry = document.querySelector('.entry');
+		const latestEntryId = parseInt(latestEntry.dataset.entryId);
+		const savedEntries = getSavedEntriesFromStorage();
+		const newestSavedEntryId = parseInt(Object.keys(savedEntries)[Object.keys(savedEntries).length-1]);
+		if (saveDebug) console.log({latestEntryId});
+		if (saveDebug) console.log({newestSavedEntryId});
+
+		if (latestEntryId - newestSavedEntryId > 12) {
+			$.toast({
+				icon: 'error',
+				text: `${latestEntryId - newestSavedEntryId - 12} unsaved entries, make sure to open older pages to save them to your history!`,
+				hideAfter: false,
+				stack: 25
+			});
+		}
+	}
+
+	// Display functions section
+	function renderSavedEntries() {
+		const savedEntries = getSavedEntriesFromStorage();
+		const journal = document.querySelector(`#journalEntries${user.user_id}`);
+		const existingEntries = journal.querySelectorAll('.entry');
+
+		if (debug) console.log({existingEntries});
+		for (const entry of existingEntries) {entry.remove();}
+
+		for (const [id, entry] of Object.entries(savedEntries)) {
+			if (entry) {
+				const frag = document.createRange().createContextualFragment(entry);
+				journal.prepend(frag);
+			}
+		}
+	}
+
+	const toggleTypes = JSON.parse(localStorage.getItem('mh-journal-historian-toggles')) || {};
+
+	function entryFilterToggle(filterType) {
+		if (filterDebug) console.log(`Filtering ${filterType} entries`);
 		const typeEntries = document.querySelectorAll(`.entry.jh${filterType}`);
 		const type = filterType;
 
-		if (filterDebug) console.log(tglTypes[`${type}`]);
+		if (filterDebug) console.log(toggleTypes[`${type}`]);
 		for (const e of typeEntries) {
-			tglTypes[`${type}`] ? e.style.display = 'none' : e.style.display = 'block';
+			toggleTypes[`${type}`] ? e.style.display = 'none' : e.style.display = 'block';
 		}
-		tglTypes[`${type}`] = !tglTypes[`${type}`];
-		localStorage.setItem('mh-journal-historian-toggles',JSON.stringify(tglTypes));
+		toggleTypes[`${type}`] = !toggleTypes[`${type}`];
+		localStorage.setItem('mh-journal-historian-toggles',JSON.stringify(toggleTypes));
 	}
 
-	function loadTgl() {
-		if (debug) console.log('Running initial toggle');
-		for (const type in tglTypes) {
-			tglTypes[`${type}`] = !tglTypes[`${type}`];
-			if (filterDebug) console.log(tglTypes[`${type}`]);
-			entryFilterTgl(type);
-			if (filterDebug) console.log(tglTypes[`${type}`]);
+	function filterOnLoad() {
+		if (debug) console.log('Filtering on load');
+		for (const type in toggleTypes) {
+			toggleTypes[`${type}`] = !toggleTypes[`${type}`];
+			if (filterDebug) console.log(toggleTypes[`${type}`]);
+			entryFilterToggle(type);
+			if (filterDebug) console.log(toggleTypes[`${type}`]);
 		}
 	}
 
-	function btnTglColour(btn,type) {
-		if (tglTypes[`${type}`]) {btn.style.background = '#7d7';} // light green
+	function btnToggleColour(btn,type) {
+		if (toggleTypes[`${type}`]) {btn.style.background = '#7d7';} // light green
 		else {btn.style.background = '#eaa';} // light red
 	}
 
@@ -221,44 +237,43 @@
 		hoverBtn.style.height = '20px';
 
 		const filterType = ['Hunts','Marketplace','Mapping','Trading','Convertible','Misc'];
-		if (!Object.keys(tglTypes).length) {
-			filterType.forEach((type)=>{
-				tglTypes[`${type}`] = true;
-			});
+		if (!Object.keys(toggleTypes).length) {
+			for (const type of filterType) {
+				toggleTypes[`${type}`] = true;
+			}
 		}
 
 		for (let i = 0; i < 6; i++) {
 			const clone = hoverBtn.cloneNode(true);
 			const type = filterType[i];
-			let cloneTgl = tglTypes[`${type}`];
+			let cloneToggle = toggleTypes[`${type}`];
 
-			if (cloneTgl) {clone.style.background = '#7d7';} // light green
+			if (cloneToggle) {clone.style.background = '#7d7';} // light green
 			else {clone.style.background = '#eaa';} // light red
 			clone.id = 'jhButton';
 			clone.innerHTML = type;
 			clone.style.backgroundImage = 'none';
 			clone.style.padding = '0 0 0 5px';
 			clone.onclick = (()=>{
-				massClasser();
-				entryFilterTgl(`${type}`);
-				btnTglColour(clone,type);
+				entryFilterToggle(`${type}`);
+				btnToggleColour(clone,type);
 			})
 			hoverDiv.insertBefore(clone,hoverBtn);
 		}
 
 		const lastBtn = document.querySelector('.pagerView-lastPageLink.pagerView-link');
 		const infiniteBtn = lastBtn.cloneNode(true);
-		let infiniteTgl = true;
+		let infiniteToggle = true;
 
 		infiniteBtn.innerHTML = 'Infinite.';
 		infiniteBtn.onclick = (()=>{
-			if (infiniteTgl) {
-				infiniteTgl = false;
+			if (infiniteToggle) {
+				infiniteToggle = false;
 				renderSavedEntries();
-				loadTgl();
+				filterOnLoad();
 			}
 			else {
-				infiniteTgl = true;
+				infiniteToggle = true;
 				const allEntries = document.querySelectorAll('.entry');
 				for (let entry = 12; entry < allEntries.length; entry++) {
 					allEntries[entry].remove();
@@ -266,13 +281,18 @@
 			}
 		});
 		lastBtn.after(infiniteBtn);
-		document.querySelectorAll('.pagerView-link').forEach((el)=>{
-			el.style.margin = "0 2px";
-			el.style.padding = "3px";
-		})
+		for (const btn of document.querySelectorAll('.pagerView-link')) {
+			btn.style.margin = "0 2px";
+			btn.style.padding = "3px";
+		}
 	}
-	massClasser(); // needed before loadTgl will work
+
+	// Initial classify on load so filterOnLoad will work
+	const initialEntries = document.querySelectorAll('.entry');
+	for (const entry of initialEntries) {
+		classifier(entry);
+	}
 	saveEntries();
-	loadTgl();
+	filterOnLoad();
 	renderBtns();
 })();
