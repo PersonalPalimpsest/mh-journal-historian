@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.0.2
+// @version      1.1.2
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -10,10 +10,11 @@
 // @icon         https://www.mousehuntgame.com/images/mice/thumb/de5de32f7ece2076dc405016d0c53302.gif?cv=2
 // @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js
 // ==/UserScript==
 
 (function () {
-	const debug = true;
+	const debug = false;
 
 	function entryStripper(entry) {
 		if (entry.classList.contains('animated')) {
@@ -33,7 +34,7 @@
 
 		if (debug) console.log('Saving entries');
 		const entries = document.querySelectorAll('.entry');
-		const savedEntries = JSON.parse(localStorage.getItem('mh-journal-historian')) || [];
+		const savedEntries = getSavedEntriesFromStorage();
 
 		entries.forEach((entry) => {
 			const entryId = entry.dataset.entryId
@@ -45,103 +46,79 @@
 				if (saveDebug) console.log(`Stored new entry ${entryId}`);
 				$.toast({
 					text: `Stored new entry ${entryId}`,
-					stack: 12
+					stack: 24
 				});
 				entryStripper(entry);
 				savedEntries[entry.dataset.entryId] = entry.outerHTML;
 			}
 		})
 
-		localStorage.setItem('mh-journal-historian',JSON.stringify(savedEntries));
+		setSavedEntriesToStorage(savedEntries);
 	}
 
-	const observerTarget = document.querySelector(".mousehuntPage-content"); //document.querySelector(`#journalEntries${user.user_id}`);
-// 	const observer = new MutationObserver(function (mutations) {
-// 		const mutationDebug = true;
-
-// 		if (debug) console.log('mutated');
-// 		if (mutationDebug) {
-// 			console.log('mutated');
-// 			for (const mutation of mutations) {
-// 				console.log({mutation});
-// 				console.log(mutation.target);
-// 			}
-// 		}
-// 		saveEntries();
-// 		renderBtns();
-
-// 		observer.observe(observerTarget, {
-// 			childList: true,
-// 			subtree: true
-// 		});
-// 	});
-
-// 	observer.observe(observerTarget, {
-// 		childList: true,
-// 		subtree: true
-// 	});
-
-	if (observerTarget) {
-		MutationObserver =
-			window.MutationObserver ||
-			window.WebKitMutationObserver ||
-			window.MozMutationObserver;
-
-		const observer = new MutationObserver(function (mutations) {
-			const mutationDebug = true;
-			const campExists = document.querySelector(
-				".mousehuntPage-content.PageCamp"
-			);
-
-			if (debug) console.log('mutated');
-			if (mutationDebug) {
-				console.log('mutated');
-				for (const mutation of mutations) {
-					console.log({mutation});
-					console.log(mutation.target);
-				}
-			}
-			if (campExists) {
-				// Disconnect and reconnect later to prevent infinite mutation loop
-				observer.disconnect();
-
-				// Re-render buttons (mainly for alternate TEM area placement)
-				// saveEntries();
-				// renderBtns();
-
+	const observerTarget = document.querySelector(`#journalContainer .content`);
+	const observer = new MutationObserver(function (mutations) {
+		const mutationDebug = false;
 				observer.observe(observerTarget, {
 					childList: true,
 					subtree: true
 				});
 			}
-		});
+		}
 
-		observer.observe(observerTarget, {
-			childList: true,
-			subtree: true
-		});
-	}
+		// Only save if something was added.
+		if (mutations.some(v => v.type === 'childList' && v.addedNodes.length > 0)) {
+			saveEntries();
+		}
+	});
 
-	const hornReq = XMLHttpRequest.prototype.open;
+	observer.observe(observerTarget, {
+		childList: true,
+		subtree: true
+	});
+
+	const xhrObserver = XMLHttpRequest.prototype.open;
 	XMLHttpRequest.prototype.open = function () {
 		this.addEventListener('load', function () {
 			if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/turns/activeturn.php`) {
 				if (debug) console.log('horn detected');
 				saveEntries();
+			} else if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/pages/page.php`) {
+				renderBtns();
 			}
 		})
-		hornReq.apply(this, arguments);
+		xhrObserver.apply(this, arguments);
 	}
 
 	function renderSavedEntries() {
-		const savedEntries = JSON.parse(localStorage.getItem('mh-journal-historian')) || [];
+		const savedEntries = getSavedEntriesFromStorage();
 		const journal = document.querySelector(`#journalEntries${user.user_id}`);
-		savedEntries.forEach((entry)=>{
+		for (const [id, entry] of Object.entries(savedEntries)) {
 			if (entry) {
 				const frag = document.createRange().createContextualFragment(entry);
 				journal.prepend(frag);
 			}
-		})
+		}
+	}
+
+	function getSavedEntriesFromStorage() {
+		const compressed = localStorage.getItem('mh-journal-historian');
+		const decompressed = LZString.decompressFromUTF16(compressed);
+
+		var savedEntries;
+		try {
+			savedEntries = JSON.parse(decompressed);
+		} catch {
+			savedEntries = {};
+		}
+
+		return savedEntries;
+	}
+
+	function setSavedEntriesToStorage(entries) {
+		const savedEntries = JSON.stringify(entries);
+		const compressed = LZString.compressToUTF16(savedEntries);
+		localStorage.setItem('mh-journal-historian', compressed);
 	}
 
 	function mpCleanUp() {
@@ -249,5 +226,6 @@
 			el.style.padding = "3px";
 		})
 	}
+	saveEntries();
 	renderBtns();
 })();
