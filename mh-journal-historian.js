@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.2
+// @version      1.3.3
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -48,6 +48,7 @@
 					text: `Stored new entry ${entryId}`,
 					stack: 24
 				});
+				classifier(entry);
 				entryStripper(entry);
 				savedEntries[entry.dataset.entryId] = entry.outerHTML;
 			}
@@ -195,7 +196,6 @@
 
 	function loadTgl() {
 		if (debug) console.log('Running initial toggle');
-		const jhButtons = document.querySelectorAll('#jhButton');
 		for (const type in tglTypes) {
 			tglTypes[`${type}`] = !tglTypes[`${type}`];
 			if (filterDebug) console.log(tglTypes[`${type}`]);
@@ -258,6 +258,7 @@
 			if (infiniteTgl) {
 				infiniteTgl = false;
 				renderSavedEntries();
+				loadTgl();
 			}
 			else {
 				infiniteTgl = true;
@@ -273,8 +274,8 @@
 			el.style.padding = "3px";
 		})
 	}
-	massClasser();
+	massClasser(); // needed before loadTgl will work
 	saveEntries();
-	renderBtns();
 	loadTgl();
+	renderBtns();
 })();
