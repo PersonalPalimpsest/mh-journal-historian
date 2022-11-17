@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.1.4
+// @version      1.1.5
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -19,9 +19,6 @@
 	function entryStripper(entry) {
 		if (entry.classList.contains('animated')) {
 			entry.classList.remove('animated');
-		}
-		if (entry.classList.contains('newEntry')) {
-			entry.classList.remove('newEntry');
 		}
 		if (entry.classList.contains('newEntry')) {
 			entry.classList.remove('newEntry');
@@ -51,8 +48,7 @@
 				entryStripper(entry);
 				savedEntries[entry.dataset.entryId] = entry.outerHTML;
 			}
-		})
-
+		});
 		setSavedEntriesToStorage(savedEntries);
 	}
 
@@ -94,6 +90,11 @@
 	function renderSavedEntries() {
 		const savedEntries = getSavedEntriesFromStorage();
 		const journal = document.querySelector(`#journalEntries${user.user_id}`);
+		const existingEntries = journal.querySelectorAll('.entry');
+
+		if (debug) console.log({existingEntries});
+		for (const entry of existingEntries) {entry.remove();}
+
 		for (const [id, entry] of Object.entries(savedEntries)) {
 			if (entry) {
 				const frag = document.createRange().createContextualFragment(entry);
