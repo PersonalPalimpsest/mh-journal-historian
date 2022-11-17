@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.1.3
+// @version      1.1.4
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -192,6 +192,8 @@
 	}
 
 	function renderBtns() {
+		const jhButton = document.querySelector('#jhButton');
+		if (jhButton) return;
 		if (debug) console.log('Rendering buttons');
 		const hoverBtn = document.querySelector('.journalContainer-selectTheme');
 		const hoverDiv = hoverBtn.parentElement;
@@ -206,13 +208,13 @@
 		let filterType = ['Hunts','Marketplace','Mapping','Trading','Convertible','Misc'];
 		for (let i = 0; i < 6; i++) {
 			let clone = hoverBtn.cloneNode(true);
+			clone.id = 'jhButton';
 			clone.innerHTML = filterType[i];
 			clone.style.backgroundImage = 'none';
 			clone.style.padding = '0 0 0 5px';
 			clone.onclick = (()=>{
 				massClasser();
 				entryFilter(`jh${clone.innerHTML}`);
-				// renderBtns();
 			})
 			hoverDiv.insertBefore(clone,hoverBtn);
 		}
