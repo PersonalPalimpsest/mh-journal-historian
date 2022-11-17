@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.0.1
+// @version      1.0.2
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -78,15 +78,17 @@
 		subtree: true
 	});
 
-	const hornReq = XMLHttpRequest.prototype.open;
+	const xhrObserver = XMLHttpRequest.prototype.open;
 	XMLHttpRequest.prototype.open = function () {
 		this.addEventListener('load', function () {
 			if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/turns/activeturn.php`) {
 				if (debug) console.log('horn detected');
 				saveEntries();
+			} else if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/pages/page.php`) {
+				renderBtns();
 			}
 		})
-		hornReq.apply(this, arguments);
+		xhrObserver.apply(this, arguments);
 	}
 
 	function renderSavedEntries() {
