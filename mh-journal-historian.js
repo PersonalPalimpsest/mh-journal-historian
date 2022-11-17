@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.0
+// @version      1.3.1
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -196,6 +196,11 @@
 		}
 	}
 
+	function btnTglColour(btn,type) {
+		if (tglTypes.type) {btn.style.background = '#7d7';} // light green
+		else {btn.style.background = '#eaa';} // light red
+	}
+
 	function renderBtns() {
 		const jhButton = document.querySelector('#jhButton');
 		if (jhButton) return;
@@ -210,16 +215,26 @@
 		hoverBtn.style.flex = 'auto';
 		hoverBtn.style.height = '20px';
 
-		let filterType = ['Hunts','Marketplace','Mapping','Trading','Convertible','Misc'];
+		const filterType = ['Hunts','Marketplace','Mapping','Trading','Convertible','Misc'];
+		filterType.forEach((type)=>{
+			tglTypes.type = true;
+		});
+
 		for (let i = 0; i < 6; i++) {
 			const clone = hoverBtn.cloneNode(true);
+			const type = filterType[i];
+			let cloneTgl = tglTypes.type;
+
+			if (cloneTgl) {clone.style.background = '#7d7';} // light green
+			else {clone.style.background = '#eaa';} // light red
 			clone.id = 'jhButton';
-			clone.innerHTML = filterType[i];
+			clone.innerHTML = type;
 			clone.style.backgroundImage = 'none';
 			clone.style.padding = '0 0 0 5px';
 			clone.onclick = (()=>{
 				massClasser();
-				entryFilterTgl(`${clone.innerHTML}`);
+				entryFilterTgl(`${type}`);
+				btnTglColour(clone,type);
 			})
 			hoverDiv.insertBefore(clone,hoverBtn);
 		}
