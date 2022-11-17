@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.1.0
+// @version      1.1.1
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -223,5 +223,6 @@
 			el.style.padding = "3px";
 		})
 	}
+	saveEntries();
 	renderBtns();
 })();
