@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.3
+// @version      1.3.4
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -19,7 +19,6 @@
 	const saveDebug = false;
 	const mutationDebug = false;
 	const classifierDebug = false;
-
 
 	function entryStripper(entry) {
 		if (entry.classList.contains('animated')) {
@@ -58,7 +57,6 @@
 
 	const observerTarget = document.querySelector(`#journalContainer .content`);
 	const observer = new MutationObserver(function (mutations) {
-
 		if (debug) console.log('mutated');
 		if (mutationDebug) {
 			for (const mutation of mutations) {
@@ -69,9 +67,9 @@
 		// Only save if something was added.
 		if (mutations.some(v => v.type === 'childList' && v.addedNodes.length > 0)) {
 			saveEntries();
+			loadTgl();
 		}
 	});
-
 	observer.observe(observerTarget, {
 		childList: true,
 		subtree: true
@@ -83,6 +81,7 @@
 			if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/turns/activeturn.php`) {
 				if (debug) console.log('horn detected');
 				saveEntries();
+				loadTgl();
 			} else if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/pages/page.php`) {
 				renderBtns();
 			}
@@ -116,7 +115,6 @@
 		} catch {
 			savedEntries = {};
 		}
-
 		return savedEntries;
 	}
 
@@ -127,7 +125,6 @@
 	}
 
 	function classifier(entry) {
-
 		if (debug) console.log('Running classifier');
 		const id = entry.dataset.entryId;
 		if (classifierDebug) console.log({id});
