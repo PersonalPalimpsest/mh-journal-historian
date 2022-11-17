@@ -52,7 +52,7 @@
 		localStorage.setItem('mh-journal-historian',JSON.stringify(savedEntries));
 	}
 
-	const observerTarget = document.querySelector(`#journalEntries${user.user_id}`);
+	const observerTarget = document.querySelector(`#journalContainer .content`);
 	const observer = new MutationObserver(function (mutations) {
 		const mutationDebug = false;
 
@@ -64,13 +64,11 @@
 				console.log(mutation.target);
 			}
 		}
-		saveEntries();
-		renderBtns();
 
-		observer.observe(observerTarget, {
-			childList: true,
-			subtree: true
-		});
+		// Only save if something was added.
+		if (mutations.some(v => v.type === 'childList' && v.addedNodes.length > 0)) {
+			saveEntries();
+		}
 	});
 
 	observer.observe(observerTarget, {
