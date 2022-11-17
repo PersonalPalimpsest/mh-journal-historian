@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.1
+// @version      1.3.2
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -15,6 +15,11 @@
 
 (function () {
 	const debug = true;
+	const filterDebug = false;
+	const saveDebug = false;
+	const mutationDebug = false;
+	const classifierDebug = false;
+
 
 	function entryStripper(entry) {
 		if (entry.classList.contains('animated')) {
@@ -27,8 +32,6 @@
 	}
 
 	function saveEntries() {
-		const saveDebug = false;
-
 		if (debug) console.log('Saving entries');
 		const entries = document.querySelectorAll('.entry');
 		const savedEntries = getSavedEntriesFromStorage();
@@ -54,7 +57,6 @@
 
 	const observerTarget = document.querySelector(`#journalContainer .content`);
 	const observer = new MutationObserver(function (mutations) {
-		const mutationDebug = false;
 
 		if (debug) console.log('mutated');
 		if (mutationDebug) {
@@ -124,7 +126,6 @@
 	}
 
 	function classifier(entry) {
-		const classifierDebug = false;
 
 		if (debug) console.log('Running classifier');
 		const id = entry.dataset.entryId;
@@ -173,31 +174,38 @@
 		const entries = document.querySelectorAll('.entry');
 
 		entries.forEach((entry)=>{
-
 			classifier(entry);
 		})
 	}
 
-	const tglTypes = {};
+	const tglTypes = JSON.parse(localStorage.getItem('mh-journal-historian-toggles')) || {};
 
 	function entryFilterTgl(filterType) {
 		if (debug) console.log(`Filtering ${filterType} entries`);
 		const typeEntries = document.querySelectorAll(`.entry.jh${filterType}`);
 		const type = filterType;
 
-		console.log(tglTypes.type);
-		if (tglTypes.type) { // if true, then clicking = turning off = setting display to none
-			for (const e of typeEntries) {e.style.display = 'none';}
-			tglTypes.type = false;
+		if (filterDebug) console.log(tglTypes[`${type}`]);
+		for (const e of typeEntries) {
+			tglTypes[`${type}`] ? e.style.display = 'none' : e.style.display = 'block';
 		}
-		else {
-			for (const e of typeEntries) {e.style.display = 'block';}
-			tglTypes.type = true;
+		tglTypes[`${type}`] = !tglTypes[`${type}`];
+		localStorage.setItem('mh-journal-historian-toggles',JSON.stringify(tglTypes));
+	}
+
+	function loadTgl() {
+		if (debug) console.log('Running initial toggle');
+		const jhButtons = document.querySelectorAll('#jhButton');
+		for (const type in tglTypes) {
+			tglTypes[`${type}`] = !tglTypes[`${type}`];
+			if (filterDebug) console.log(tglTypes[`${type}`]);
+			entryFilterTgl(type);
+			if (filterDebug) console.log(tglTypes[`${type}`]);
 		}
 	}
 
 	function btnTglColour(btn,type) {
-		if (tglTypes.type) {btn.style.background = '#7d7';} // light green
+		if (tglTypes[`${type}`]) {btn.style.background = '#7d7';} // light green
 		else {btn.style.background = '#eaa';} // light red
 	}
 
@@ -216,14 +224,16 @@
 		hoverBtn.style.height = '20px';
 
 		const filterType = ['Hunts','Marketplace','Mapping','Trading','Convertible','Misc'];
-		filterType.forEach((type)=>{
-			tglTypes.type = true;
-		});
+		if (!Object.keys(tglTypes).length) {
+			filterType.forEach((type)=>{
+				tglTypes[`${type}`] = true;
+			});
+		}
 
 		for (let i = 0; i < 6; i++) {
 			const clone = hoverBtn.cloneNode(true);
 			const type = filterType[i];
-			let cloneTgl = tglTypes.type;
+			let cloneTgl = tglTypes[`${type}`];
 
 			if (cloneTgl) {clone.style.background = '#7d7';} // light green
 			else {clone.style.background = '#eaa';} // light red
@@ -263,6 +273,8 @@
 			el.style.padding = "3px";
 		})
 	}
+	massClasser();
 	saveEntries();
 	renderBtns();
+	loadTgl();
 })();
