@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.1.5
+// @version      1.1.6
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -222,8 +222,22 @@
 
 		const lastBtn = document.querySelector('.pagerView-lastPageLink.pagerView-link');
 		const infiniteBtn = lastBtn.cloneNode(true);
+		let infiniteTgl = true;
+
 		infiniteBtn.innerHTML = 'Infinite.';
-		infiniteBtn.onclick = renderSavedEntries;
+		infiniteBtn.onclick = (()=>{
+			if (infiniteTgl) {
+				infiniteTgl = false;
+				renderSavedEntries();
+			}
+			else {
+				infiniteTgl = true;
+				const allEntries = document.querySelectorAll('.entry');
+				for (let entry = 12; entry < allEntries.length; entry++) {
+					allEntries[entry].remove();
+				}
+			}
+		});
 		lastBtn.after(infiniteBtn);
 		document.querySelectorAll('.pagerView-link').forEach((el)=>{
 			el.style.margin = "0 2px";
