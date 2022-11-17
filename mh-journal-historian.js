@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.5
+// @version      1.3.6
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -49,6 +49,8 @@
 				saveEntries();
 				filterOnLoad();
 			} else if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/pages/page.php`) {
+				classifyPage();
+				filterOnLoad();
 				renderBtns();
 			}
 		})
@@ -124,6 +126,13 @@
 			if (classifierDebug) console.log('Misc');
 			if (classifierDebug) console.log({cssClass});
 			entry.classList.add('jhMisc');
+		}
+	}
+
+	function classifyPage() {
+		const initialEntries = document.querySelectorAll('.entry');
+		for (const entry of initialEntries) {
+			classifier(entry);
 		}
 	}
 
@@ -264,6 +273,7 @@
 		const lastBtn = document.querySelector('.pagerView-lastPageLink.pagerView-link');
 		const infiniteBtn = lastBtn.cloneNode(true);
 		let infiniteToggle = true;
+		if (debug) console.log({infiniteToggle});
 
 		infiniteBtn.innerHTML = 'Infinite.';
 		infiniteBtn.onclick = (()=>{
@@ -288,10 +298,7 @@
 	}
 
 	// Initial classify on load so filterOnLoad will work
-	const initialEntries = document.querySelectorAll('.entry');
-	for (const entry of initialEntries) {
-		classifier(entry);
-	}
+	classifyPage();
 	saveEntries();
 	filterOnLoad();
 	renderBtns();
