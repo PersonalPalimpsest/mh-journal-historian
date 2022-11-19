@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.7
+// @version      1.3.8
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -14,14 +14,13 @@
 // ==/UserScript==
 
 (function () {
-	const debug = false;
+	const debug = true;
 	const filterDebug = false;
 	const saveDebug = false;
 	const mutationDebug = false;
 	const classifierDebug = false;
 
 	// Observers to run the save and display functions as required
-	const observerTarget = document.querySelector(`#journalContainer .content`);
 	const observer = new MutationObserver(function (mutations) {
 		if (debug) console.log('mutated');
 		if (mutationDebug) {
@@ -31,15 +30,19 @@
 			}
 		}
 		// Only save if something was added.
-		if (mutations.some(v => v.type === 'childList' && v.addedNodes.length > 0)) {
+		if (mutations.some(v => v.type === 'childList' && v.addedNodes.length > 0 && v.target.className !== 'journaldate')) {
 			saveEntries();
 			filterOnLoad();
 		}
 	});
-	observer.observe(observerTarget, {
-		childList: true,
-		subtree: true
-	});
+
+	function activateMutationObserver() {
+		let observerTarget = document.querySelector(`#journalContainer .content`);
+		observer.observe(observerTarget, {
+			childList: true,
+			subtree: true
+		});
+	}
 
 	const xhrObserver = XMLHttpRequest.prototype.open;
 	XMLHttpRequest.prototype.open = function () {
@@ -53,6 +56,8 @@
 				classifyPage();
 				filterOnLoad();
 				renderBtns();
+
+				activateMutationObserver();
 			}
 		})
 		xhrObserver.apply(this, arguments);
@@ -60,7 +65,7 @@
 
 	// Save functions section
 	function saveEntries() {
-		if (debug) console.log('Saving entries');
+		if (debug) console.log('Checking entries and saving new entries');
 		const entries = document.querySelectorAll('.entry');
 		const savedEntries = getSavedEntriesFromStorage();
 		const ownJournal = document.querySelector(`#journalEntries${user.user_id}`);
@@ -83,8 +88,9 @@
 			else {
 				if (saveDebug) console.log(`Stored new entry ${entryId}`);
 				$.toast({
-					text: `Stored new entry ${entryId}`,
-					stack: 25
+					text: `Stored new entry ${entryId}`
+					,stack: 25
+					,hideAfter: 6900
 				});
 				classifier(entry);
 				entryStripper(entry);
@@ -139,6 +145,7 @@
 	}
 
 	function classifyPage() {
+		if (debug) console.log('classifying page');
 		const initialEntries = document.querySelectorAll('.entry');
 		for (const entry of initialEntries) {
 			classifier(entry);
@@ -282,7 +289,7 @@
 		const lastBtn = document.querySelector('.pagerView-lastPageLink.pagerView-link');
 		const infiniteBtn = lastBtn.cloneNode(true);
 		let infiniteToggle = true;
-		if (debug) console.log({infiniteToggle});
+		if (filterDebug) console.log({infiniteToggle});
 
 		infiniteBtn.innerHTML = 'Infinite.';
 		infiniteBtn.onclick = (()=>{
@@ -307,8 +314,9 @@
 	}
 
 	// Initial classify on load so filterOnLoad will work
+	activateMutationObserver();
 	classifyPage();
-	saveEntries();
-	filterOnLoad();
+	// saveEntries(); // not required as renderBtns triggers mutation observer which triggers save/filter
+	// filterOnLoad();
 	renderBtns();
 })();
