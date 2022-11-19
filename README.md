@@ -8,7 +8,7 @@ Move over Mythweaver, we're writing our own journal's history now.
     
         i. Currently this has a bug where it stops working if you press the Camp button anytime after a full page refresh. Refresh the page to make the Infinite view work again.
     
-    b. Only saves what gets loaded on the page, so load older pages if you've been away from your device where you store your history for a while.
+    b. Only saves what gets loaded on the page, so load older pages if you've been away from the device where you store your history for a while.
     
     c. Click the button again to go back to the regular journal length.
   
