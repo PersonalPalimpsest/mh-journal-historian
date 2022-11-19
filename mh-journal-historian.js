@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MouseHunt - Journal Historian
 // @namespace    https://greasyfork.org/en/users/900615-personalpalimpsest
-// @version      1.3.6
+// @version      1.3.7
 // @license      GNU GPLv3
 // @description  Saves journal entries and offers more viewing options
 // @author       asterios
@@ -49,6 +49,7 @@
 				saveEntries();
 				filterOnLoad();
 			} else if (this.responseURL == `https://www.mousehuntgame.com/managers/ajax/pages/page.php`) {
+				if (debug) console.log('Page load detected');
 				classifyPage();
 				filterOnLoad();
 				renderBtns();
@@ -62,14 +63,22 @@
 		if (debug) console.log('Saving entries');
 		const entries = document.querySelectorAll('.entry');
 		const savedEntries = getSavedEntriesFromStorage();
+		const ownJournal = document.querySelector(`#journalEntries${user.user_id}`);
+
+		if (!ownJournal) {
+			console.log(`Other hunters' profile detected`);
+			return;
+		}
 
 		gapDetector();
 
 		for (const entry of entries) {
 			const entryId = entry.dataset.entryId
 
+			if (!entryId) return;
+
 			if (savedEntries[entryId]) {
-				if (saveDebug) console.log(`Entry ${entryId} already stored`);
+				// if (saveDebug) console.log(`Entry ${entryId} already stored`);
 			}
 			else {
 				if (saveDebug) console.log(`Stored new entry ${entryId}`);
