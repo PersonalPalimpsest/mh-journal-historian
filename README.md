@@ -1,6 +1,18 @@
-# mh-journal-historian
-Saves journal entries and offers more viewing options
+# MouseHunt - Journal Historian
 
-Saves journal entries that are loaded on the page to local storage, which can then be viewed with the "Infinite." button by the journal page buttons.
+Move over Mythweaver, we're writing our own journal's history now.
 
-Also adds filter buttons that are visible when hovering over the journal header, which filters the journal entries by type to make the infinite view more useful.
+1. Saves a local copy of all your Hunter's Journal entries
+    
+    a. Click the "Infinite." button at the bottom of your journal to see the "Infinite view" of your entire saved history
+    
+        i. Currently this has a bug where it stops working if you press the Camp button anytime after a full page refresh. Refresh the page to make the Infinite view work again.
+    
+    b. Only saves what gets loaded on the page, so load older pages if you've been away from your device where you store your history for a while
+  
+2. Adds category filters to your Hunter's Journal to declutter your journal by hiding unwanted categories
+
+    a. Hover your journal header to see and turn your filters on/off
+    
+    b. Your filter options are saved and also apply to the Infinite view
+
